@@ -1,0 +1,10 @@
+#summary Hardware setup for the Arduino Mega
+= Hardware Setup for the Arduino Mega =
+
+  * Mega pin 51 (MOSI) -> SIN (Tlc pin 26)
+  * Mega pin 52 (SCK) -> SCLK (Tlc pin 25)
+  * Mega pin 11 (OC1A) -> XLAT (Tlc pin 24)
+  * Mega pin 12 (OC1B) -> BLANK (Tlc pin 23)
+  * Mega pin 9 (OC2B) -> GSCLK (Tlc pin 18)
+
+Anyone want to modify the [http://students.washington.edu/acleone/codes/tlc5940arduino/img/breadboard-arduino-tlc5940.svg SVG of the Arduino Diecimila]?
