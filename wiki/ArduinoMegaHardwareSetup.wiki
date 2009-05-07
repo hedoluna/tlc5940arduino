@@ -1,5 +1,7 @@
 #summary Hardware setup for the Arduino Mega
 
+See ArduinoDiecimilaHardwareSetup for the other pins on the Tlc that need to be connected.
+
 == Required Pins ==
 
   * Mega pin 51 (MOSI) -> SIN (Tlc pin 26)
