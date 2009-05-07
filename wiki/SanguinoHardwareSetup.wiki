@@ -1,4 +1,7 @@
 #summary Hardware setup for the Sanguino
+
+See ArduinoDiecimilaHardwareSetup for the other pins on the Tlc that need to be connected.
+
 == Required Pins ==
 
   * Sanguino pin 5 (MOSI) -> SIN (Tlc pin 26)
