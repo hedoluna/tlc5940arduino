@@ -16,10 +16,7 @@
     along with The Arduino TLC5940 Library.  If not, see
     <http://www.gnu.org/licenses/>. */
 
-#ifndef TLC5940_H
-#define TLC5940_H
+#ifndef TLC_SELECT_H
+#define TLC_SELECT_H
 
-#include "hardware/tlc_board_select.h"
-#include "tlc_defines.h"
-
-#endif /* -- ifndef TLC5940_H -- */
+#endif /* -- ifndef TLC_SELECT_H-- */
