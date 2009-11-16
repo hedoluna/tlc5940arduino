@@ -1,22 +1,17 @@
-/*  Copyright (c) 2009 by Alex Leone <acleone ~AT~ gmail.com>
+#if !defined(TLC_BOARD_SELECT_H)
+#    define  TLC_BOARD_SELECT_H
 
-    This file is part of the Arduino TLC5940 Library.
+#if defined(__AVR_ATmega48__)  \
+ || defined(__AVR_ATmega168P__)  \
+ || defined(__AVR_ATmega328P__)  \
+ || defined(__AVR_ATmega88__)  \
+ || defined(__AVR_ATmega48P__)  \
+ || defined(__AVR_ATmega88P__)  \
+ || defined(__AVR_ATmega168__)
+#  include "tlc_arduino.h"
+#else
+#  error Board not recognized! Please send an email to acleone ~AT~ gmail.com to add support for your board.
+#endif
 
-    The Arduino TLC5940 Library is free software: you can redistribute it
-    and/or modify it under the terms of the GNU General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+#endif /* !defined(TLC_BOARD_SELECT_H) */
 
-    The Arduino TLC5940 Library is distributed in the hope that it will be
-    useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with The Arduino TLC5940 Library.  If not, see
-    <http://www.gnu.org/licenses/>. */
-
-#ifndef TLC_SELECT_H
-#define TLC_SELECT_H
-
-#endif /* -- ifndef TLC_SELECT_H-- */

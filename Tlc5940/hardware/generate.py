@@ -41,14 +41,14 @@ class ErrorPrinter:
     def __init__(self, filename):
         self.filename = filename
         self.is_filename_printed = False
-        
+    
     def show(self, msg):
         if not self.is_filename_printed:
             self.is_filename_printed = True
             print "In '{0}':".format(self.filename)
         print msg
 
-def module_to_h_name(modulename):
+def module_to_h_filename(modulename):
     return "tlc_" + modulename + ".h"
 
 def write_mcu_order(macro, modulename):
@@ -76,6 +76,34 @@ def write_mcu_order(macro, modulename):
     mcu_order_file = open('mcu_order.py', 'w')
     mcu_order_file.writelines(lines)
     mcu_order_file.close()
+
+class HfileGenerator:
+    """
+    Generates .h files with #if defined({filename}_H) guards to prevent multiple
+    inclusion.
+    """
+    def __init__(self, filename):
+        """Creates a new file and adds the include guard."""
+        h_define = filename.upper().replace(".", "_")
+        h_file = open(filename, "w")
+        h_file.write(
+            "#if !defined(" + h_define + ")\n" \
+            "#    define  " + h_define + "\n\n"
+        )
+        self.h_define = h_define
+        self.h_file = h_file
+    
+    def write(self, s):
+        """Writes a string to the file."""
+        self.h_file.write(s)
+    
+    def close(self):
+        """Adds the end of the include guard and closes the file."""
+        self.h_file.write(
+            "#endif /* !defined(" + self.h_define + ") */\n\n"
+        )
+        self.h_file.close()
+        
 
 class BoardSelectGenerator:
     """
@@ -123,71 +151,106 @@ class BoardSelectGenerator:
             else:
                 self.defined_macros[macro] = modulename
 
-def check_spi_mode_ordering(spi_modes, spi_modes_order, error):
-    """
-    Check that all the keys in 'spi_modes' are in 'spi_modes_order'
-    and vice-versa.
-    Returns: True if valid, False otherwise.
-       
-    >>> error = ErrorPrinter('<doctest string>')
-    >>> modes = {'spi': None, 'usart': None, 'bitbang': None}
-    >>> modes_order = ['usart', 'spi', 'bitbang']
-    >>> check_spi_mode_ordering(modes, modes_order, error)
-    True
-    >>> modes_order[0] = 'usarT'
-    >>> check_spi_mode_ordering(modes, modes_order, error)
-    In '<doctest string>':
-    Error: 'usarT' is in 'spi_modes_order' but doesn't exist in 'spi_modes'!
-    Error: 'usart' is in 'spi_modes' but doesn't exist in 'spi_modes_order'!
-    False
-    """
-    error_str = "Error: '{0}' is in '{1}' but doesn't exist in '{2}'!"
-    valid = True
-    in_order = {}
-    for mode in spi_modes_order:
-        if mode not in spi_modes:
-            error.show(error_str.format(
-                mode, 'spi_modes_order', 'spi_modes',
-            ))
-            valid = False
-        else:
-            in_order[mode] = None
-    for mode in spi_modes:
-        if mode not in in_order:
-            error.show(error_str.format(
-                mode, 'spi_modes', 'spi_modes_order',
-            ))
-            valid = False
-    return valid
-                
+    def generate_selector_h(self, h_filename):
+        boards = {}
+        for macro in self.defined_macros:
+            include_filename = module_to_h_filename(self.defined_macros[macro])
+            if include_filename not in boards:
+                boards[include_filename] = [macro]
+            else:
+                boards[include_filename].append(macro)
+        select_h = HfileGenerator(h_filename)
+        board_ifs = []
+        for filename in boards:
+            define_checks = ["defined({0})".format(s) for s in boards[filename]]
+            board_ifs.append(
+                '  \\\n || '.join(define_checks) + \
+                '\n#  include "{0}"\n'.format(filename)
+            )
+        select_h.write("#if ")
+        select_h.write("#elif ".join(board_ifs))
+        select_h.write(
+            "#else\n" \
+            "#  error Board not recognized! Please send an email " \
+            "to acleone ~AT~ gmail.com to add support for your board.\n" \
+            "#endif\n\n"
+        )
+        select_h.close()
+        
+                  
     
-def spi_generator(generator, error):
+def mode_generator(generator, modes_str, order_str, define_prefix, error):
     """
-    Returns a list of strings that should be written to the board.h file,
-            or False if there was an error in the spi_modes.
+    Returns a list of strings that should be written to the board.h file.
+    
+    >>> error = ErrorPrinter('<string>')
+    >>> g = {
+    ...     'mode_order': ('a', 'b'),
+    ...     'modes': {
+    ...         'a': {'pins': (), 'code': "mode a"},
+    ...         'b': {'pins': (), 'code': "mode b"},
+    ...     },
+    ... }
+    >>> slist = mode_generator(g, 'modes', 'mode_order', 'TLC_', error)
+    >>> print "".join(slist)
+    #if defined(TLC_A) \\
+          + defined(TLC_B) > 1
+    #  error at most 1 mode can be defined of: ['TLC_A', 'TLC_B']
+    #elif defined(TLC_A) \\
+          + defined(TLC_B) == 0
+    #  define TLC_A
+    #endif
+    <BLANKLINE>
+    #if defined(TLC_A)
+    mode a
+    #endif /* defined(TLC_A) */
+    <BLANKLINE>
+    <BLANKLINE>
+    #if defined(TLC_B)
+    mode b
+    #endif /* defined(TLC_B) */
+    <BLANKLINE>
+    <BLANKLINE>
+    <BLANKLINE>
+    >>> del g['modes']['a']
+    >>> del g['modes']['b']
+    >>> slist = mode_generator(g, 'modes', 'mode_order', 'TLC_', error)
+    In '<string>':
+    Warning: 'a' is in 'mode_order' but not in 'modes'!
+    Warning: 'b' is in 'mode_order' but not in 'modes'!
+    Error: No valid modes in 'modes'!
+    >>> slist == []
+    True
     """
-    spi_modes = generator['spi_modes']
-    spi_modes_order = generator['spi_modes_order']
-    if not check_spi_mode_ordering(spi_modes, spi_modes_order, error):
-        return False
+    modes = generator[modes_str]
+    modes_order = generator[order_str]
     mode_defines = []
     all_mode_defines = []
     modes_code = []
-    for mode in spi_modes_order:
-        mode_define = "TLC_SPI_MODE_" + mode.upper()
+    for mode in modes_order:
+        if mode not in modes:
+            error.show(
+                "Warning: '{0}' is in '{1}' but not in '{2}'!".format(
+                    mode, order_str, modes_str,
+                )
+            )
+            continue                       
+        mode_define = define_prefix + mode.upper()
         mode_defines.append(mode_define)
         defined_check = "defined(" + mode_define + ")"
         all_mode_defines.append(defined_check)
         modes_code.extend((
             "#if ", defined_check, "\n",
-            spi_modes[mode]['code'], "\n",
+            modes[mode]['code'], "\n",
             "#endif /* ", defined_check, " */\n\n\n",
         ))
-                           
-    all_mode_defines = " + ".join(all_mode_defines)
+    if len(mode_defines) == 0:
+        error.show("Error: No valid modes in '{0}'!".format(modes_str))
+        return []
+    all_mode_defines = " \\\n      + ".join(all_mode_defines)
     result = [
         "#if ", all_mode_defines, " > 1\n",
-        "#  error at most 1 spi mode can be defined: ", str(mode_defines), "\n",
+        "#  error at most 1 mode can be defined of: ", str(mode_defines), "\n",
         "#elif ", all_mode_defines, " == 0\n",
         "#  define ", mode_defines[0], "\n",
         "#endif\n\n",
@@ -210,22 +273,24 @@ def generate():
             generator = module.generator
             generators[modulename] = generator
             board_select_gen.add_board(generator, modulename, error)
-            spi_code_list = spi_generator(generator, error)
-            if not spi_code_list:
-                continue
-            board_h_name = module_to_h_name(modulename)
-            board_h_define = board_h_name.upper().replace(".", "_")
-            board_h_file = open(board_h_name, "w")
-            board_h_file.write(
-                "#if !defined(" + board_h_define + ")\n" \
-                "#    define  " + board_h_define + "\n\n"
+            spi_code_list = mode_generator(
+                generator,
+                'spi_modes', 'spi_modes_order', 'TLC_SPI_MODE_',
+                error,
             )
+            timer_code_list = mode_generator(
+                generator,
+                'timer_modes', 'timer_modes_order', 'TLC_TIMER_MODE_',
+                error,
+            )
+            board_h_name = module_to_h_filename(modulename)
+            board_h = HfileGenerator(board_h_name)
             for s in spi_code_list:
-                board_h_file.write(s)
-            board_h_file.write(
-                "#endif /* !defined(" + board_h_define + ") */\n\n"
-            )
-            board_h_file.close()
+                board_h.write(s)
+            for s in timer_code_list:
+                board_h.write(s)
+            board_h.close()
+    board_select_gen.generate_selector_h('tlc_board_select.h')
                     
 
 if __name__ == '__main__':
