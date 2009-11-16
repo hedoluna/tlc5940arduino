@@ -36,11 +36,12 @@ generator = {
                 'others': (
                     # SS has to be set as output or the SPI module will switch
                     # to slave if the pin goes low
-                    {'pin': 'PB2', 'as': 'SS', 'dir': 'o', 'unused': True},
+                    {'pin': 'PB2', 'as': 'SS',   'dir': 'o', 'unused': True},
+                    {'pin': 'PB4', 'as': 'MISO', 'dir': 'i', 'unused': True},
                 ),
             },
             
-            'code': """
+            'code': r"""
 inline void tlc_spi_begin() {
     DDR_SPI |= _BV(MOSI_P) // MOSI as output
           | _BV(SCK_P)  // SCK as output
@@ -55,6 +56,11 @@ inline void tlc_spi_write(const uint8_t byte) {
     while ( !(SPSR & _BV(SPIF)) )
         ; // wait for transmission complete
 }
+
+inline void tlc_spi_pulse_sclk() {
+    PORT_SPI |= _BV(SCK_P);
+    PORT_SPI &= ~_BV(SCK_P);
+}
 """,
 
         },
@@ -64,7 +70,7 @@ inline void tlc_spi_write(const uint8_t byte) {
                 'sclk': {'pin': 'PD4', 'as': 'XCK{n}', 'dir': 'o'},
             },
             
-            'code': """
+            'code': r"""
 inline void tlc_spi_begin() {
     DDR_XCK{n} |= _BV(XCK{n}_P); // XCK{n} as output, enables master mode
     UCSR{n}C = _BV(UMSEL{n}1) | _BV(UMSEL{n}0); // USART{n} in master SPI mode
@@ -77,6 +83,11 @@ inline void tlc_spi_write(const uint8_t byte) {
     while ( !(UCSR{n}A & _BV(UDRE{n})) )
         ; // wait for transmit buffer to be empty
 }
+
+inline void tlc_spi_pulse_sclk() {
+    PORT_XCK{n} |= _BV(XCK{n}_P);
+    PORT_XCK{n} &= ~_BV(XCK{n}_P);
+}
 """,
 
         },
@@ -85,13 +96,12 @@ inline void tlc_spi_write(const uint8_t byte) {
                 'sin' : {'pin': 'any', 'as': 'TLC_SIN_PIN',  'dir': 'o'},
                 'sclk': {'pin': 'any', 'as': 'TLC_SCLK_PIN', 'dir': 'o'},
             },
-            'code':
-"""
+            'code': r"""
 #if defined(TLC_SIN_PIN) + defined(TLC_SCLK_PIN) != 2
 #  error TLC_SIN_PIN and TLC_SCLK_PIN must be defined with TLC_SPI_MODE_BITBANG!
 #endif
 
-void tlc_spi_begin() {
+inline void tlc_spi_begin() {
     DDR_HIGH(TLC_SIN_PIN);
     DDR_HIGH(TLC_SCLK_PIN);
 }
@@ -104,9 +114,14 @@ void tlc_spi_write(const uint8_t byte) {
         } else {
             PORT_LOW(TLC_SIN_PIN);
         }
-        PORT_HIGH(TLC_SIN_PIN);
-        PORT_LOW(TLC_SIN_PIN);
+        PORT_HIGH(TLC_SCLK_PIN);
+        PORT_LOW(TLC_SCLK_PIN);
     }
+}
+
+inline void tlc_spi_pulse_sclk() {
+    PORT_HIGH(TLC_SCLK_PIN);
+    PORT_LOW(TLC_SCLK_PIN);
 }
 """,            
         },

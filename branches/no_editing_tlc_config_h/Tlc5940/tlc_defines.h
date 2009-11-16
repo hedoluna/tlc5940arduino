@@ -16,65 +16,21 @@
     along with The Arduino TLC5940 Library.  If not, see
     <http://www.gnu.org/licenses/>. */
     
-#ifndef TLC_DEFINES_H
-#define TLC_DEFINES_H
+#if !defined(TLC_DEFINES_H)
+#    define  TLC_DEFINES_H
 
 /* ------------ Number of Tlc Chips Daisy Chained ---------------- */
 
-#ifndef TLC_NUM_TLCS
-#define TLC_NUM_TLCS    1
+#if !defined(NUM_TLCS)
+#  define NUM_TLCS    1
 #endif
 
-#ifndef TLC_CHANNEL_TYPE
+#if !defined(TLC_CHANNEL_TYPE)
+#  if NUM_TLCS < 16
+#    define TLC_CHANNEL_TYPE    uint8_t
+#  else
+#    define TLC_CHANNEL_TYPE    uint16_t
+#  endif
+#endif /* !defined(TLC_CHANNEL_TYPE) */
 
-#if TLC_NUM_TLCS < 16
-#define TLC_CHANNEL_TYPE    uint8_t
-#else
-#define TLC_CHANNEL_TYPE    uint16_t
-#endif /* -- if TLC_NUM_TLCS < 16 -- */
-
-#endif /* -- ifndef TLC_CHANNEL_TYPE -- */
-
-
-/* ------------ PWM period and timer TOP values ------------------- */
-
-#if defined(TLC_PWM_FREQUENCY) && defined(TLC_PWM_PERIOD)
-#error Can not define both TLC_PWM_FREQUENCY and TLC_PWM_PERIOD!
-#endif
-
-#ifndef TLC_PWM_FREQUENCY
-#define TLC_PWM_FREQUENCY   976.5625
-#endif
-
-#ifndef TLC_PWM_PERIOD
-#define TLC_PWM_PERIOD      (1.0 / (TLC_PWM_FREQUENCY))
-#else
-#undef  TLC_PWM_FREQUENCY
-#define TLC_PWM_FREQUENCY   (1.0 / (TLC_PWM_PERIOD))
-#endif /* -- ifndef TLC_PWM_PERIOD -- */
-
-#if !(( defined(TLC_BLANK_PRESCALE) &&  defined(TLC_BLANK_TOP) \
-    &&  defined(TLC_GSCLK_PRESCALE) &&  defined(TLC_GSCLK_PRESCALE)) \
-   || (!defined(TLC_BLANK_PRESCALE) && !defined(TLC_BLANK_PRESCALE) \
-    && !defined(TLC_GSCLK_PRESCALE) && !defined(TLC_GSCLK_PRESCALE)))
-#error Define all of TLC_BLANK_PRESCALE, TLC_BLANK_TOP, TLC_GSCLK_PRESCALE, \
-       and TLC_GSCLK_TOP!
-#endif
-
-#ifndef TLC_BLANK_PRESCALE
-#define TLC_BLANK_PRESCALE  1
-#define TLC_BLANK_TOP    (F_CPU * TLC_PWM_PERIOD / (2 * TLC_BLANK_PRESCALE))
-#define TLC_GSCLK_PRESCALE  1
-#define TLC_GSCLK_TOP  ((2 * TLC_GSCLK_PRESCALE * TLC_BLANK_TOP) / 4096.0 - 1)
-#endif /* -- ifndef TLC_BLANK_PRESCALE -- */
-
-
-/* ------------ Data Transfer Options --------------- */
-#if (defined(TLC_DATA_MODE_SPI)
-
-
-
-#endif /* -- ifdef TLC_SIN_PIN -- */
-
-
-#endif /* -- ifndef TLC_DEFINES_H -- */
+#endif /* !defined(TLC_DEFINES_H) */

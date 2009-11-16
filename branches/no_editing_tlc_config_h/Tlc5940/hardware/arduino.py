@@ -17,10 +17,12 @@
 # <http://www.gnu.org/licenses/>.
 
 """
-Board options for the Arduino Diecimila
+Board options for the Arduino Diecimila.
 """
 
 import default
+
+
 
 generator = {
 
@@ -47,10 +49,12 @@ generator = {
                     # SS has to be set as output or the SPI module will switch
                     # to slave if the pin goes low
                     {'pin': 'PB2', 'as': 'SS', 'dir': 'o', 'unused': True},
+                    {'pin': 'PB4', 'as': 'MISO', 'dir': 'i', 'unused': True},
                 ),
             },
             'code': default.generator['spi_modes']['spi']['code'] \
                     .replace("DDR_SPI", "DDRB") \
+                    .replace("PORT_SPI", "PORTB") \
                     .replace("MOSI_P", "3") \
                     .replace("SCK_P", "5") \
                     .replace("SS_P", "2"),
@@ -64,6 +68,7 @@ generator = {
             },       
             'code': default.generator['spi_modes']['usart{n}']['code'] \
                     .replace("DDR_XCK{n}", "DDRD") \
+                    .replace("PORT_XCK{n}", "PORTD") \
                     .replace("XCK{n}_P", "4") \
                     .replace("{n}", "0"),
 
@@ -73,20 +78,80 @@ generator = {
     },
     
     'timer_modes_order': (
-        'timer1_BLANK_timer2b_GSCLK',
+        'timer1_BLANK_XLAT_timer2b_GSCLK',
+        'timer1a_BLANK_timer2b_GSCLK_any_XLAT',
+        'timer1b_BLANK_timer2b_GSCLK_any_XLAT',
     ),
     'timer_modes': {
-        'timer1_BLANK_timer2b_GSCLK': {
+        'timer1_BLANK_XLAT_timer2b_GSCLK': {
             'pins': {
                 'blank': {'pin': 'PB2', 'as': 'OC1B', 'dir': 'o'},
                 'xlat' : {'pin': 'PB1', 'as': 'OC1A', 'dir': 'o'},
                 'gsclk': {'pin': 'PD3', 'as': 'OC2B', 'dir': 'o'},
             },
+            'code': r"""
+#define TLC_XLAT_INTERRUPT_vect  TIMER1_OVF_vect
+
+#define tlc_enable_XLAT_interrupt() \
+            TIFR1 |= _BV(TOV1);     \
+            TIMSK1 = _BV(TOIE1)
+#define tlc_disable_XLAT_interrupt() \
+            TIMSK1 = 0
+
+#define tlc_enable_XLAT_pulses() \
+            TCCR1A = _BV(COM1A1) | _BV(COM1B1)
+#define tlc_disable_XLAT_pulses() \
+            TCCR1A = _BV(COM1B1)
+
+inline void tlc_timers_pin_setup() {
+    DDRB |= _BV(2)   // BLANK as output
+          | _BV(1);  // XLAT  as output
+    DDRD |= _BV(3);  // GSCLK as output
+    PORTB |= _BV(2); // leave BLANK high
+}
+
+inline void tlc_timers_begin(const uint16_t div_f_osc_by) {
+    TCCR1A = _BV(COM1B1);  // non inverting, output on OC1B, BLANK
+    TCCR1B = _BV(WGM13);   // Phase/freq correct PWM, ICR1 top
+    OCR1A = 1;             // duty factor on OC1A, XLAT is inside BLANK
+    OCR1B = 2;             // duty factor on BLANK (larger than OCR1A (XLAT))
+    ICR1 = 8192;
+    TCCR2A = _BV(COM2B1)      // set on BOTTOM, clear on OCR2A (non-inverting),
+                              // output on OC2B
+           | _BV(WGM21)       // Fast pwm with OCR2A top
+           | _BV(WGM20);      // Fast pwm with OCR2A top
+    TCCR2B = _BV(WGM22);      // Fast pwm with OCR2A top
+    OCR2B = 0;                // duty factor (as short a pulse as possible)
+    OCR2A = 3;
+    
+    TCCR2B |= _BV(CS20);      // no prescale, (start pwm output)
+    TCCR1B |= _BV(CS10);      // no prescale, (start pwm output)
+}
+
+inline void tlc_timers_pulse_xlat() {
+    PORTB |=  _BV(1);
+    PORTB &= ~_BV(1);
+}
+""",
             
         },
         
-        'timer2_BLANK_timer1_GSCLK': {
+        'timer1a_BLANK_timer2b_GSCLK_any_XLAT': {
+            'pins': {
+                'blank': {'pin': 'PB1', 'as': 'OC1A', 'dir': 'o'},
+                'xlat' : {'pin': 'any', 'as': 'TLC_XLAT_PIN', 'dir': 'o'},
+                'gsclk': {'pin': 'PD3', 'as': 'OC2B', 'dir': 'o'},
+            },
+            'code': "",
+        },
         
+        'timer1b_BLANK_timer2b_GSCLK_any_XLAT': {
+            'pins': {
+                'blank': {'pin': 'PB2', 'as': 'OC1B', 'dir': 'o'},
+                'xlat' : {'pin': 'any', 'as': 'TLC_XLAT_PIN', 'dir': 'o'},
+                'gsclk': {'pin': 'PD3', 'as': 'OC2B', 'dir': 'o'},
+            },
+            'code': "",
         },
     },
 }
