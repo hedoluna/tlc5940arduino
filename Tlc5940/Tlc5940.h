@@ -154,9 +154,9 @@ void Tlc5940::begin(uint16_t initialValue, uint16_t div_f_osc_by) {
     update();
 }
 
-/** Clears the grayscale data array, #tlc_GSData, but does not shift in any
-    data.  This call should be followed by update() if you are turning off
-    all the outputs. */
+/** Sets the grayscale data array, #tlc_GSData, to all zeros, but does not
+    shift in any data.  This call should be followed by update() if you are
+    turning off all the outputs. */
 void Tlc5940::clear(void) {
     setAll(0);
 }
