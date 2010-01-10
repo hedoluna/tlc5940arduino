@@ -1,0 +1,42 @@
+#summary How to calculate the power dissipation so that the TLCs don't burn out
+
+= Power Dissipation =
+
+From the datasheet:
+
+http://tlc5940arduino.googlecode.com/files/power_dissipation_eq.png
+
+== Explanation ==
+
+  * V,,cc,, is +5V for regular Arduino's.
+  * I,,cc,, (Supply current) is listed in Electrical Characteristics on pg 4 of the datasheet: <br> http://tlc5940arduino.googlecode.com/files/icc_table.png <br> I'll assume you're using R_iref = ~2k, so I,,cc,, < 25mA. (Data transfer is usually 8MHz, and assuming outputs are on).
+  * V,,out,, is the voltage going into the LEDs.  For example, +4V --> LED --> TLC, then Vout = 4.  I'll assume you're using +5V.
+  * I,,max,, is the calculated from the R,,iref,, resistor, I,,max,, = 39.06 / R,,iref,,.  I'll assume R,,iref,, = 2k so I,,max,, = 39.06 / 2000 = 20mA.
+  * DCn is the dot correction value for channel n.  Unless you're setting the dot correction, it's 63.
+  * d,,pwm,, is the current channel setting, (aka GS PWM value), divided by 4095.  For example, `Tlc.set(0, 4095)` means d,,pwm,, = 4095/4095 = 1.  Lets assume d,,pwm,, = 1.
+  * N is the number of channels set to d,,pwm,,.  For example, if we know that we're not going to turn on more than 5 channels at once, then N = 5.  Lets assume N = 16, or we might turn all channels on at some point.
+
+== Example Calculation ==
+
+Here's our assumptions from above:
+  * V,,cc,, = 5V
+  * I,,cc,, < 25mA (Looking up value with R,,iref,, = 2k from table above)
+  * V,,out,, = 5V (assuming +5V --> LED --> TLC)
+  * I,,max,, = 39.06 / R,,iref,, = 20mA.  (Assuming R,,iref,, = 2k)
+  * DC,,n,, = 63 (unless you explicitly set this)
+  * d,,pwm,, = 1 (whatever the maximum channel setting will be, eg `Tlc.set(0, 4095)` -> 4095/4095 = 1)
+  * N = 16 (maximum number of channels that will be on at once)
+
+P,,d,, = (V,,cc,, `*` I,,cc,,) + (V,,out,, `*` I,,max,, `*` (DC,,n,, / 63) `*` d,,pwm,, `*` N)
+<br> = (5V `*` 25mA) + (5V `*` 20mA `*` (63 / 63 = 1) `*` 1 `*` 16) = 1725mW
+
+http://tlc5940arduino.googlecode.com/files/dissipation_ratings.png
+
+Let's assume that the chip is in an environment with a ambient temperature T,,a,, = 30C.  Then by power dissipation table (DIP is the package that fits on a breadboard), the maximum power dissipation is 2456mW - 19.65mW `*` (T,,a,, - 25C = 30C - 25C = 5) = 2357.75mW.
+
+So from before, if R,,iref,, = 2k, the LED voltage is 5V, and all the outputs are on, the chip generates 1725mW and we should be fine.
+
+Now assume that we lowered the LED voltage to 4V (so +4V --> LED --> TLC).  Then <br>
+Pd = (5V `*` 25mA) + (4V `*` 20mA `*` (63 / 63 = 1) `*` 1 `*` 16) = 1405mW
+
+So if you're afraid of burning out TLCs, lower the LED voltage.  But make sure it's enough voltage to turn on the LEDs! It should be a bit above the forward voltage drop from the LED datasheet.
