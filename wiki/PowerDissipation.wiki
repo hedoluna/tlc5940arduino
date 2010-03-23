@@ -10,7 +10,7 @@ http://tlc5940arduino.googlecode.com/files/power_dissipation_eq.png
 
   * V,,cc,, is +5V for regular Arduino's.
   * I,,cc,, (Supply current) is listed in Electrical Characteristics on pg 4 of the datasheet: <br> http://tlc5940arduino.googlecode.com/files/icc_table.png <br> I'll assume you're using R_iref = ~2k, so I,,cc,, < 25mA. (Data transfer is usually 8MHz, and assuming outputs are on).
-  * V,,out,, is the voltage going into the LEDs.  For example, +4V --> LED --> TLC, then Vout = 4.  I'll assume you're using +5V.
+  * V,,out,, is the voltage going into the tlc pin, which would be the voltage going into the LED minus the forward voltage drop across the LED.  For example, +4V --> LED --> TLC, then Vout = 4 - (forward voltage drop across LED, usually 2.1V, see the LED datasheet) = 1.9V.  I'll assume you're using +5V, so +5V - 2.1V = 2.9V.
   * I,,max,, is the calculated from the R,,iref,, resistor, I,,max,, = 39.06 / R,,iref,,.  I'll assume R,,iref,, = 2k so I,,max,, = 39.06 / 2000 = 20mA.
   * DCn is the dot correction value for channel n.  Unless you're setting the dot correction, it's 63.
   * d,,pwm,, is the current channel setting, (aka GS PWM value), divided by 4095.  For example, `Tlc.set(0, 4095)` means d,,pwm,, = 4095/4095 = 1.  Lets assume d,,pwm,, = 1.
@@ -21,22 +21,22 @@ http://tlc5940arduino.googlecode.com/files/power_dissipation_eq.png
 Here's our assumptions from above:
   * V,,cc,, = 5V
   * I,,cc,, < 25mA (Looking up value with R,,iref,, = 2k from table above)
-  * V,,out,, = 5V (assuming +5V --> LED --> TLC)
+  * V,,out,, = 2.9V (assuming +5V --> LED with Vf of 2.1V --> TLC)
   * I,,max,, = 39.06 / R,,iref,, = 20mA.  (Assuming R,,iref,, = 2k)
   * DC,,n,, = 63 (unless you explicitly set this)
   * d,,pwm,, = 1 (whatever the maximum channel setting will be, eg `Tlc.set(0, 4095)` -> 4095/4095 = 1)
   * N = 16 (maximum number of channels that will be on at once)
 
 P,,d,, = (V,,cc,, `*` I,,cc,,) + (V,,out,, `*` I,,max,, `*` (DC,,n,, / 63) `*` d,,pwm,, `*` N)
-<br> = (5V `*` 25mA) + (5V `*` 20mA `*` (63 / 63 = 1) `*` 1 `*` 16) = 1725mW
+<br> = (5V `*` 25mA) + (2.9V `*` 20mA `*` (63 / 63 = 1) `*` 1 `*` 16) = 1053mW
 
 http://tlc5940arduino.googlecode.com/files/dissipation_ratings.png
 
 Let's assume that the chip is in an environment with a ambient temperature T,,a,, = 30C.  Then by power dissipation table (DIP is the package that fits on a breadboard), the maximum power dissipation is 2456mW - 19.65mW `*` (T,,a,, - 25C = 30C - 25C = 5) = 2357.75mW.
 
-So from before, if R,,iref,, = 2k, the LED voltage is 5V, and all the outputs are on, the chip generates 1725mW and we should be fine.
+So from before, if R,,iref,, = 2k, the LED voltage is 5V, and all the outputs are on, the chip generates 1053mW and we should be fine.
 
 Now assume that we lowered the LED voltage to 4V (so +4V --> LED --> TLC).  Then <br>
-Pd = (5V `*` 25mA) + (4V `*` 20mA `*` (63 / 63 = 1) `*` 1 `*` 16) = 1405mW
+Pd = (5V `*` 25mA) + (1.9V `*` 20mA `*` (63 / 63 = 1) `*` 1 `*` 16) = 733mW
 
 So if you're afraid of burning out TLCs, lower the LED voltage.  But make sure it's enough voltage to turn on the LEDs! It should be a bit above the forward voltage drop from the LED datasheet.
