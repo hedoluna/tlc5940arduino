@@ -1,5 +1,7 @@
 #summary Hardware setup for the Sanguino
 
+http://tlc5940arduino.googlecode.com/files/tlc5940nt_pins.png
+
 See ArduinoDiecimilaHardwareSetup for the other pins on the Tlc that need to be connected.
 
 == Required Pins ==
