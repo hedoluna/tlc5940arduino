@@ -2,8 +2,7 @@
 
 == Wiring Diagram ==
 
-[http://students.washington.edu/acleone/codes/tlc5940arduino/img/breadboard-arduino-tlc5940_close.png]
-http://tlc5940arduino.googlecode.com/files/tlc5940nt_pins.png
+[http://students.washington.edu/acleone/codes/tlc5940arduino/img/breadboard-arduino-tlc5940_close.png]  http://tlc5940arduino.googlecode.com/files/tlc5940nt_pins.png
 
 *Note: pin 1 of the Tlc is the lower right pin in the breadboard picture above.*
 
