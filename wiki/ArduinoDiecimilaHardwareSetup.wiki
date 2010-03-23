@@ -4,6 +4,8 @@
 
 [http://students.washington.edu/acleone/codes/tlc5940arduino/img/breadboard-arduino-tlc5940_close.png]
 
+http://tlc5940arduino.googlecode.com/files/tlc5940nt_pins.png
+
 == Required Pins ==
 
   * Arduino digital pin 7 (MOSI) -> SIN (Tlc pin 26)
@@ -11,6 +13,8 @@
   * Arduino digital pin 9 (OC1A) -> XLAT (Tlc pin 24)
   * Arduino digital pin 10 (OC1B) -> BLANK (Tlc pin 23)
   * Arduino digital pin 3 (OC2B) -> GSCLK (Tlc pin 18)
+  * Tlc VPRG (pin 27) is at ground.  This is for normal "greyscale" operation (VPRG=gnd).  This can also be used to set "dot-correction" (VPRG=Vcc), when changing the maximum current through each channel individually - see the config file and VPRG related functions.
+  * Tlc DCPRG (pin 19) is at Vcc.  This selects between the dot-correction data in the device EEPROM (DCPRG=gnd) vs dot-correction data from the DC register in the device (DCPRG=Vcc). 
 
 == Optional Pins ==
 
